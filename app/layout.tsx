@@ -10,10 +10,23 @@ export const metadata: Metadata = {
   description: 'Convert and compress images to WebP for WordPress product galleries',
 };
 
+const themeScript = `(function(){
+  try {
+    var t = localStorage.getItem('optima-theme');
+    var p = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.classList.add(t || p);
+  } catch(e) {
+    document.documentElement.classList.add('dark');
+  }
+})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-[#0a0a0d] text-white antialiased">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-screen antialiased">
         {children}
       </body>
     </html>

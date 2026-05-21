@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { convertToWebP } from '@/lib/sharp-worker';
-import { getPreset } from '@/lib/presets';
+import { convert } from '@/lib/sharp-worker';
+import { getPreset, PRESET_IDS } from '@/lib/presets';
 import type { CustomSettings } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -9,31 +9,32 @@ export async function POST(req: NextRequest) {
     const file = form.get('file') as File | null;
     const presetId = form.get('preset') as string | null;
     const customRaw = form.get('customSettings') as string | null;
+    const cropCxRaw = form.get('cropCx') as string | null;
+    const cropCyRaw = form.get('cropCy') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
+    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const isBuiltIn = presetId && PRESET_IDS.has(presetId) && presetId !== 'custom';
+    const options: CustomSettings = isBuiltIn
+      ? getPreset(presetId!)
+      : customRaw ? JSON.parse(customRaw) : getPreset('gallery');
 
-    const options: CustomSettings =
-      presetId === 'custom' && customRaw
-        ? (JSON.parse(customRaw) as CustomSettings)
-        : getPreset(presetId ?? 'gallery');
+    const cropFocus = (cropCxRaw && cropCyRaw)
+      ? { cx: parseFloat(cropCxRaw), cy: parseFloat(cropCyRaw) }
+      : undefined;
 
-    const { buffer: webpBuffer, width, height } = await convertToWebP(buffer, options);
+    const { buffer: outBuffer, width, height, ext, mimeType } = await convert(buffer, options, cropFocus);
 
     const baseName = file.name.replace(/\.[^.]+$/, '');
-    const filename = `${baseName}.webp`;
-    const dataURL = `data:image/webp;base64,${webpBuffer.toString('base64')}`;
-
     return NextResponse.json({
-      filename,
-      dataURL,
+      filename: `${baseName}.${ext}`,
+      dataURL: `data:${mimeType};base64,${outBuffer.toString('base64')}`,
       originalSize: buffer.length,
-      outputSize: webpBuffer.length,
+      outputSize: outBuffer.length,
       width,
       height,
+      format: ext,
     });
   } catch (err) {
     console.error('[convert]', err);

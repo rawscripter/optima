@@ -40,7 +40,7 @@ export function DropZone({ onFiles, disabled }: Props) {
         cursor-pointer select-none transition-all duration-200 px-8 py-16
         ${dragging
           ? 'border-2 border-violet-400 bg-violet-500/10 scale-[1.01] shadow-[0_0_40px_rgba(139,92,246,0.15)]'
-          : 'border-2 border-dashed border-white/8 bg-white/[0.02] hover:border-violet-500/30 hover:bg-violet-500/[0.04]'
+          : 'border-2 border-dashed border-base hover:border-violet-500/30 bg-surface hover:bg-violet-500/[0.04]'
         }
         ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
       `}
@@ -55,11 +55,9 @@ export function DropZone({ onFiles, disabled }: Props) {
         disabled={disabled}
       />
 
-      <div className={`relative p-5 rounded-2xl transition-all ${
-        dragging ? 'bg-violet-500/25 shadow-[0_0_30px_rgba(139,92,246,0.2)]' : 'bg-white/[0.04]'
-      }`}>
+      <div className={`p-5 rounded-2xl transition-all ${dragging ? 'bg-violet-500/25 shadow-[0_0_30px_rgba(139,92,246,0.2)]' : 'bg-overlay'}`}>
         <svg
-          className={`w-9 h-9 transition-colors ${dragging ? 'text-violet-300' : 'text-white/30'}`}
+          className={`w-9 h-9 transition-colors ${dragging ? 'text-violet-300' : 'text-4'}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -68,10 +66,11 @@ export function DropZone({ onFiles, disabled }: Props) {
       </div>
 
       <div className="text-center space-y-1.5">
-        <p className={`text-sm font-semibold transition-colors ${dragging ? 'text-violet-200' : 'text-white/60'}`}>
+        <p className={`text-sm font-semibold transition-colors ${dragging ? 'text-violet-200' : 'text-2'}`}>
           {dragging ? 'Release to add images' : 'Drop images here'}
         </p>
-        <p className="text-xs text-white/25">or click to browse · JPG · PNG · GIF · AVIF · WebP</p>
+        <p className="text-xs text-4">click to browse · or paste from clipboard (Ctrl+V)</p>
+        <p className="text-xs text-4 opacity-60">JPG · PNG · GIF · AVIF · WebP</p>
       </div>
     </div>
   );

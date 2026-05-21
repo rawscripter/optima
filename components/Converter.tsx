@@ -4,29 +4,29 @@ import { useState } from 'react';
 import { DropZone } from './DropZone';
 import { PresetSelector } from './PresetSelector';
 import { CustomControls } from './CustomControls';
+import { RenamePanel } from './RenamePanel';
 import { ImageQueue } from './ImageQueue';
 import { ConvertButton } from './ConvertButton';
 import { ResultsPanel } from './ResultsPanel';
 import { PreviewModal } from './PreviewModal';
 import { SavePresetModal } from './SavePresetModal';
+import { WooPackButton } from './WooPackButton';
+import { CropModal } from './CropModal';
 import { useFileQueue } from '@/hooks/useFileQueue';
 import { useClientPreview } from '@/hooks/useClientPreview';
 import { useConversion } from '@/hooks/useConversion';
 import { useSavedPresets } from '@/hooks/useSavedPresets';
-import { PRESETS } from '@/lib/presets';
+import { useRenameSettings } from '@/hooks/useRenameSettings';
+import { useClipboardPaste } from '@/hooks/useClipboardPaste';
+import { PRESETS, PRESET_IDS } from '@/lib/presets';
 import type { Preset, CustomSettings, FileEntry } from '@/types';
 
 const DEFAULT_CUSTOM: CustomSettings = {
-  width: null,
-  height: null,
-  fit: 'inside',
-  quality: 95,
-  effort: 4,
-  lossless: false,
-  nearLossless: false,
-  smartSubsample: true,
-  sharpPreset: 'photo',
-  animated: false,
+  width: null, height: null, fit: 'inside',
+  quality: 95, effort: 4,
+  lossless: false, nearLossless: false, smartSubsample: true, sharpPreset: 'photo',
+  animated: false, targetSizeKB: null,
+  outputFormat: 'webp', preserveMetadata: false,
 };
 
 export function Converter() {
@@ -34,35 +34,33 @@ export function Converter() {
   const [customSettings, setCustomSettings] = useState<CustomSettings>(DEFAULT_CUSTOM);
   const [previewEntry, setPreviewEntry] = useState<FileEntry | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [cropModalEntry, setCropModalEntry] = useState<FileEntry | null>(null);
 
-  const { files, addFiles, removeFile, clearAll, updateEntry } = useFileQueue();
+  const { files, addFiles, removeFile, clearAll, updateEntry, reorderFiles } = useFileQueue();
   useClientPreview(files, selectedPreset.quality, updateEntry);
+  useClipboardPaste(addFiles);
   const { isConverting, progress, convertAll, downloadZip } = useConversion(files, updateEntry);
   const { savedPresets, savePreset, deletePreset } = useSavedPresets();
+  const { renameSettings, setRenameSettings } = useRenameSettings();
 
-  const hasDone = files.some((f) => f.status === 'done');
-  const hasConvertible = files.some((f) => f.status === 'pending' || f.status === 'error');
-
-  // When selecting a saved preset, populate customSettings from it so CustomControls reflects its values
   const handlePresetChange = (preset: Preset) => {
     setSelectedPreset(preset);
-    if (preset.id !== 'custom' && !PRESETS.find((p) => p.id === preset.id)) {
-      // It's a saved preset — treat like custom (show controls with its values)
-      const { id: _id, label: _label, description: _desc, ...settings } = preset;
-      setCustomSettings(settings as CustomSettings);
+    if (!PRESET_IDS.has(preset.id)) {
+      const { id: _id, label: _l, description: _d, ...rest } = preset;
+      setCustomSettings(rest as CustomSettings);
     }
   };
 
-  const activeSettings: CustomSettings =
-    selectedPreset.id === 'custom' || !PRESETS.find((p) => p.id === selectedPreset.id)
-      ? customSettings
-      : selectedPreset;
+  const isCustomOrSaved = !PRESET_IDS.has(selectedPreset.id) || selectedPreset.id === 'custom';
+  const activeSettings: CustomSettings = isCustomOrSaved ? customSettings : selectedPreset;
+  const activeFit = isCustomOrSaved ? customSettings.fit : selectedPreset.fit;
 
-  const showCustomControls =
-    selectedPreset.id === 'custom' || !PRESETS.find((p) => p.id === selectedPreset.id);
+  const hasDone = files.some((f) => f.status === 'done');
+  const hasConvertible = files.some((f) => f.status === 'pending' || f.status === 'error');
+  const firstDoneName = files.find((f) => f.status === 'done')?.file.name;
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-6 pb-20">
+    <div className="flex flex-col gap-5 pb-20">
       <DropZone onFiles={addFiles} disabled={isConverting} />
 
       <PresetSelector
@@ -73,9 +71,15 @@ export function Converter() {
         onSaveRequest={() => setShowSaveModal(true)}
       />
 
-      {showCustomControls && (
+      {isCustomOrSaved && (
         <CustomControls settings={customSettings} onChange={setCustomSettings} />
       )}
+
+      <RenamePanel
+        settings={renameSettings}
+        onChange={setRenameSettings}
+        exampleName={firstDoneName ?? files[0]?.file.name}
+      />
 
       {files.length > 0 && (
         <>
@@ -84,34 +88,43 @@ export function Converter() {
             onRemove={removeFile}
             onClear={clearAll}
             onPreview={setPreviewEntry}
+            onReorder={reorderFiles}
+            showCropButton={activeFit === 'cover'}
+            onCrop={(id) => { const e = files.find(f => f.id === id); if (e) setCropModalEntry(e); }}
           />
 
           <ConvertButton
-            onClick={() => convertAll(selectedPreset, activeSettings)}
+            onClick={() => convertAll(selectedPreset, activeSettings, renameSettings)}
             isConverting={isConverting}
             progress={progress}
             disabled={!hasConvertible}
             hasDone={hasDone}
           />
 
+          <WooPackButton files={files} renameSettings={renameSettings} />
+
           <ResultsPanel
             files={files}
-            onDownloadZip={() => downloadZip(selectedPreset, activeSettings)}
+            onDownloadZip={() => downloadZip(selectedPreset, activeSettings, renameSettings)}
             preset={selectedPreset}
             customSettings={activeSettings}
           />
         </>
       )}
 
-      {previewEntry && (
-        <PreviewModal entry={previewEntry} onClose={() => setPreviewEntry(null)} />
-      )}
-
+      {previewEntry && <PreviewModal entry={previewEntry} onClose={() => setPreviewEntry(null)} />}
       {showSaveModal && (
-        <SavePresetModal
-          settings={customSettings}
-          onSave={savePreset}
-          onClose={() => setShowSaveModal(false)}
+        <SavePresetModal settings={customSettings} onSave={savePreset} onClose={() => setShowSaveModal(false)} />
+      )}
+      {cropModalEntry && (
+        <CropModal
+          src={cropModalEntry.objectURL}
+          targetWidth={isCustomOrSaved ? (customSettings.width ?? 1000) : (selectedPreset.width ?? 1000)}
+          targetHeight={isCustomOrSaved ? (customSettings.height ?? 1000) : (selectedPreset.height ?? 1000)}
+          initialCx={cropModalEntry.cropCx ?? 0.5}
+          initialCy={cropModalEntry.cropCy ?? 0.5}
+          onConfirm={(cx, cy) => updateEntry(cropModalEntry.id, { cropCx: cx, cropCy: cy })}
+          onClose={() => setCropModalEntry(null)}
         />
       )}
     </div>

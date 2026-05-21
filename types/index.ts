@@ -12,6 +12,9 @@ export interface Preset {
   smartSubsample: boolean;
   sharpPreset: 'default' | 'photo' | 'picture' | 'drawing' | 'icon' | 'text';
   animated: boolean;
+  targetSizeKB: number | null;
+  outputFormat: 'webp' | 'avif';
+  preserveMetadata: boolean;
 }
 
 export interface CustomSettings {
@@ -25,6 +28,9 @@ export interface CustomSettings {
   smartSubsample: boolean;
   sharpPreset: 'default' | 'photo' | 'picture' | 'drawing' | 'icon' | 'text';
   animated: boolean;
+  targetSizeKB: number | null;
+  outputFormat: 'webp' | 'avif';
+  preserveMetadata: boolean;
 }
 
 export type FileStatus = 'pending' | 'converting' | 'done' | 'error';
@@ -37,7 +43,10 @@ export interface FileEntry {
   status: FileStatus;
   resultDataURL: string | null;
   resultSize: number | null;
+  resultFilename: string | null;
   error: string | null;
+  cropCx?: number;
+  cropCy?: number;
 }
 
 export interface ConversionResult {

@@ -12,6 +12,7 @@ function makeEntry(file: File): FileEntry {
     status: 'pending',
     resultDataURL: null,
     resultSize: null,
+    resultFilename: null,
     error: null,
   };
 }
@@ -48,10 +49,19 @@ export function useFileQueue() {
     []
   );
 
+  const reorderFiles = useCallback((fromIndex: number, toIndex: number) => {
+    setFiles((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }, []);
+
   const setStatus = useCallback(
     (id: string, status: FileStatus) => updateEntry(id, { status }),
     [updateEntry]
   );
 
-  return { files, addFiles, removeFile, clearAll, updateEntry, setStatus };
+  return { files, addFiles, removeFile, clearAll, updateEntry, reorderFiles, setStatus };
 }

@@ -1,25 +1,63 @@
 @import "tailwindcss";
 
+/* ── Theme tokens ──────────────────────────────────── */
 :root {
-  --background: #0a0a0d;
-  --foreground: #ffffff;
+  --bg:          #0a0a0d;
+  --bg-elevated: #0f0f13;
+  --surface:     rgba(255,255,255,0.025);
+  --overlay:     rgba(255,255,255,0.05);
+  --border:      rgba(255,255,255,0.07);
+  --text-1:      rgba(255,255,255,0.88);
+  --text-2:      rgba(255,255,255,0.60);
+  --text-3:      rgba(255,255,255,0.40);
+  --text-4:      rgba(255,255,255,0.22);
+  --font-sans:   var(--font-geist-sans);
+  --font-mono:   var(--font-geist-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html.light {
+  --bg:          #f2f2f7;
+  --bg-elevated: #ffffff;
+  --surface:     rgba(255,255,255,0.80);
+  --overlay:     rgba(0,0,0,0.04);
+  --border:      rgba(0,0,0,0.09);
+  --text-1:      rgba(0,0,0,0.88);
+  --text-2:      rgba(0,0,0,0.58);
+  --text-3:      rgba(0,0,0,0.38);
+  --text-4:      rgba(0,0,0,0.22);
 }
 
+/* ── Base ──────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text-1);
   font-family: var(--font-geist-sans), Arial, sans-serif;
+  transition: background 0.2s, color 0.2s;
 }
 
-/* Custom scrollbar */
-.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+/* ── Custom utilities ──────────────────────────────── */
+@layer utilities {
+  .bg-page      { background-color: var(--bg); }
+  .bg-elevated  { background-color: var(--bg-elevated); }
+  .bg-surface   { background-color: var(--surface); }
+  .bg-overlay   { background-color: var(--overlay); }
+  .border-base  { border-color: var(--border); }
+  .text-1       { color: var(--text-1); }
+  .text-2       { color: var(--text-2); }
+  .text-3       { color: var(--text-3); }
+  .text-4       { color: var(--text-4); }
+
+  .hover\:bg-overlay:hover  { background-color: var(--overlay); }
+  .hover\:bg-surface:hover  { background-color: var(--surface); }
+  .hover\:border-base:hover { border-color: var(--border); }
+  .hover\:text-1:hover      { color: var(--text-1); }
+  .hover\:text-2:hover      { color: var(--text-2); }
+  .hover\:text-3:hover      { color: var(--text-3); }
+  .divide-base > * + * { border-color: var(--border); }
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+.scrollbar-thin::-webkit-scrollbar       { width: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
