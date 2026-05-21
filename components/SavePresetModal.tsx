@@ -1,0 +1,81 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import type { Preset, CustomSettings } from '@/types';
+
+interface Props {
+  settings: CustomSettings;
+  onSave: (preset: Preset) => void;
+  onClose: () => void;
+}
+
+export function SavePresetModal({ settings, onSave, onClose }: Props) {
+  const [name, setName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleSave = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const id = `custom-${Date.now()}`;
+    onSave({
+      ...settings,
+      id,
+      label: trimmed,
+      description: [
+        settings.width && settings.height ? `${settings.width}×${settings.height}` : 'original size',
+        `q${settings.quality}`,
+      ].join(' · '),
+    });
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-[#111116] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-4">
+        <div>
+          <h3 className="text-sm font-semibold text-white/90">Save Preset</h3>
+          <p className="text-xs text-white/40 mt-1">
+            {settings.width && settings.height
+              ? `${settings.width}×${settings.height} · `
+              : 'Original size · '}
+            q{settings.quality} · {settings.sharpPreset}
+          </p>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Preset name…"
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
+          className="rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm text-white placeholder-white/25
+                     focus:outline-none focus:border-violet-500/60 focus:bg-violet-500/5 transition-colors"
+        />
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-lg text-sm text-white/40 border border-white/8 hover:border-white/15 hover:text-white/60 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!name.trim()}
+            className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-violet-600 text-white
+                       hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
