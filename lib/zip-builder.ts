@@ -1,19 +1,22 @@
 import { PassThrough } from 'stream';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { ZipArchive } = require('archiver') as { ZipArchive: new (options?: object) => {
+  pipe(dest: NodeJS.WritableStream): void;
+  append(source: Buffer, data: { name: string }): void;
+  finalize(): void;
+} };
 
 export function buildZip(
   files: { filename: string; buffer: Buffer }[]
 ): ReadableStream<Uint8Array> {
   const passThrough = new PassThrough();
 
-  (async () => {
-    const { ZipArchive } = await import('archiver');
-    const archive = new ZipArchive({ zlib: { level: 6 } });
-    archive.pipe(passThrough);
-    for (const { filename, buffer } of files) {
-      archive.append(buffer, { name: filename });
-    }
-    await archive.finalize();
-  })().catch((err) => passThrough.destroy(err));
+  const archive = new ZipArchive({ zlib: { level: 6 } });
+  archive.pipe(passThrough);
+  for (const { filename, buffer } of files) {
+    archive.append(buffer, { name: filename });
+  }
+  archive.finalize();
 
   return new ReadableStream({
     start(controller) {
