@@ -38,6 +38,46 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Optima',
+      url: siteUrl,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description: 'Free WebP image optimizer for WooCommerce. Batch convert product images to all WooCommerce sizes.',
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What size should WooCommerce product images be?',
+          acceptedAnswer: { '@type': 'Answer', text: 'WooCommerce recommends 800×800px minimum. Optima generates thumbnail (150×150), catalog (600×600), gallery (1000×1000), and hero (1920×600) sizes automatically.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Should I use WebP for WooCommerce?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes. WebP produces 25-35% smaller files than JPEG, improving page load speed and Google rankings.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'How do I bulk convert product images to WebP?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Upload all images at once in Optima, select the WooCommerce preset, and click "Generate All WooCommerce Sizes" to download a ZIP with every size for every product.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Are my images stored on the server?',
+          acceptedAnswer: { '@type': 'Answer', text: 'No. Images are processed in memory and never stored. Nothing is retained after you download your files.' },
+        },
+      ],
+    },
+  ],
+};
+
 const themeScript = `(function(){
   try {
     var t = localStorage.getItem('optima-theme');
@@ -53,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
       <body className="min-h-screen antialiased">
         {children}
