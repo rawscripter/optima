@@ -62,10 +62,16 @@ export function ImageQueueItem({ entry, index, onRemove, onPreview, isDragOver, 
         </svg>
       </div>
 
-      {/* Thumbnail — draggable to desktop for done items */}
+      {/* Thumbnail */}
       <div
-        className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-overlay ${isDone ? 'cursor-pointer' : ''}`}
-        draggable={isDone}
+        className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-overlay relative group/thumb transition-all duration-200
+          ${showCropButton ? 'cursor-pointer' : isDone ? 'cursor-pointer' : ''}`}
+        style={showCropButton && !hasCrop
+          ? { outline: '1.5px dashed rgba(251,191,36,0.5)', outlineOffset: '2px' }
+          : showCropButton && hasCrop
+          ? { outline: '1.5px solid rgba(139,92,246,0.5)', outlineOffset: '2px' }
+          : undefined}
+        draggable={isDone && !showCropButton}
         onDragStart={(e) => {
           e.stopPropagation();
           if (isDone && entry.resultDataURL) {
@@ -73,11 +79,19 @@ export function ImageQueueItem({ entry, index, onRemove, onPreview, isDragOver, 
             e.dataTransfer.setData('DownloadURL', `image/webp:${filename}:${entry.resultDataURL}`);
           }
         }}
-        onClick={() => isDone && onPreview(entry)}
-        title={isDone ? 'Drag to desktop to save · click to compare' : undefined}
+        onClick={() => showCropButton ? onCrop?.() : isDone && onPreview(entry)}
+        title={showCropButton ? 'Set crop focus' : isDone ? 'Drag to desktop · click to compare' : undefined}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={entry.objectURL} alt={entry.file.name} className="w-full h-full object-cover" />
+        {showCropButton && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150">
+            <svg className="w-4 h-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Info */}
@@ -85,7 +99,7 @@ export function ImageQueueItem({ entry, index, onRemove, onPreview, isDragOver, 
         <p className="text-sm text-2 truncate leading-tight">
           {isDone && entry.resultFilename ? entry.resultFilename : entry.file.name}
         </p>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-xs text-4">{fmt(entry.file.size)}</span>
           {isDone && entry.resultSize != null && (
             <>
@@ -100,6 +114,29 @@ export function ImageQueueItem({ entry, index, onRemove, onPreview, isDragOver, 
             <span className="text-xs text-4">~{fmt(entry.estimatedSize)} est.</span>
           )}
           {isError && <span className="text-xs text-red-400 truncate">{entry.error}</span>}
+          {/* Inline crop CTA — lives in info row, always visible */}
+          {showCropButton && !hasCrop && !isDone && (
+            <button
+              onClick={onCrop}
+              className="flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 transition-colors font-medium"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+              </svg>
+              Set crop focus →
+            </button>
+          )}
+          {showCropButton && hasCrop && (
+            <button
+              onClick={onCrop}
+              className="flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+              </svg>
+              Crop set · adjust
+            </button>
+          )}
         </div>
       </div>
 
@@ -120,22 +157,6 @@ export function ImageQueueItem({ entry, index, onRemove, onPreview, isDragOver, 
           >
             Save
           </a>
-        )}
-        {showCropButton && (
-          <button
-            onClick={onCrop}
-            title="Adjust crop"
-            className={`text-xs px-2 py-1 rounded-lg border transition-colors ${
-              hasCrop
-                ? 'border-violet-500/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20'
-                : 'text-4 hover:text-2 border-transparent hover:border-base hover:bg-overlay'
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-            </svg>
-          </button>
         )}
         <button
           onClick={() => onRemove(entry.id)}
