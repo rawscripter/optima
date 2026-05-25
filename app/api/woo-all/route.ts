@@ -27,30 +27,31 @@ export async function POST(req: NextRequest) {
 
     const entries: { filename: string; buffer: Buffer }[] = [];
 
-    await Promise.all(
-      files.map(async (file, i) => {
-        const input = Buffer.from(await file.arrayBuffer());
+    // Process files sequentially to avoid OOM on t2.micro — each large PNG can
+    // decompress to 100-200MB; concurrent processing multiplies peak memory usage.
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const input = Buffer.from(await file.arrayBuffer());
 
-        const validationError = await validateImageBuffer(input, file.name);
-        if (validationError) throw new Error(validationError);
+      const validationError = await validateImageBuffer(input, file.name);
+      if (validationError) throw new Error(validationError);
 
-        const rawName = Array.isArray(renames) && renames[i] ? renames[i] : file.name;
-        const baseName = sanitizeFilename(rawName);
+      const rawName = Array.isArray(renames) && renames[i] ? renames[i] : file.name;
+      const baseName = sanitizeFilename(rawName);
 
-        const crop = Array.isArray(crops) ? crops[i] : null;
-        const cropFocus = (crop && typeof crop.cx === 'number' && typeof crop.cy === 'number' &&
-          crop.cx >= 0 && crop.cx <= 1 && crop.cy >= 0 && crop.cy <= 1)
-          ? { cx: crop.cx, cy: crop.cy }
-          : undefined;
+      const crop = Array.isArray(crops) ? crops[i] : null;
+      const cropFocus = (crop && typeof crop.cx === 'number' && typeof crop.cy === 'number' &&
+        crop.cx >= 0 && crop.cx <= 1 && crop.cy >= 0 && crop.cy <= 1)
+        ? { cx: crop.cx, cy: crop.cy }
+        : undefined;
 
-        await Promise.all(
-          WOO_PRESETS.map(async (preset) => {
-            const { buffer, ext } = await convert(input, preset, cropFocus);
-            entries.push({ filename: `${preset.id}/${baseName}.${ext}`, buffer });
-          })
-        );
-      })
-    );
+      await Promise.all(
+        WOO_PRESETS.map(async (preset) => {
+          const { buffer, ext } = await convert(input, preset, cropFocus);
+          entries.push({ filename: `${preset.id}/${baseName}.${ext}`, buffer });
+        })
+      );
+    }
 
     return new Response(buildZip(entries), {
       headers: {
